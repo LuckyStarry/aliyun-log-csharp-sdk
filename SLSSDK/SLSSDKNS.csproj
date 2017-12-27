@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <AssemblyName>LOGSDK</AssemblyName>
+    <RootNamespace>Aliyun.Api.LOG</RootNamespace>
+    <PackageId>LuckyStarry.Aliyun.Api.Log</PackageId>
+    <Copyright>Copyright © Aliyun 2014</Copyright>
+    <Description>.NET SDK for Aliyun Simple Log Service (SLS)</Description>
+    <Company>Aliyun</Company>
+    <Product>SLSSDK</Product>
+    <Authors>SUN BO</Authors>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>TRACE;DEBUG;NETSTANDARD2_0</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="sample\**" />
+    <EmbeddedResource Remove="sample\**" />
+    <None Remove="sample\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.ProtocolBuffers" Version="2.4.1.555" />
+    <PackageReference Include="lz4net" Version="1.0.15.93" />
+    <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
+    <PackageReference Include="zlib.net" Version="1.0.4" />
+  </ItemGroup>
+
+</Project>

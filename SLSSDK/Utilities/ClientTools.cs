@@ -17,61 +17,78 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using System.IO.Compression;
+using System.Linq;
+#if NETSTANDARD2_0
+using LZ4;
+#else
 using LZ4Sharp;
 using Lz4;
+#endif
 
 namespace Aliyun.Api.LOG.Utilities
 {
     internal class LogClientTools
     {
-        public static byte[] CompressToZlib(byte[] buffer)
-        {
-            using (MemoryStream compressStream = new MemoryStream())
-            {
-                using (ZLibNet.ZLibStream gz = new ZLibNet.ZLibStream(compressStream, ZLibNet.CompressionMode.Compress, ZLibNet.CompressionLevel.Level6, true))
-                {
-                    gz.Write(buffer, 0, buffer.Length);
-                    compressStream.Seek(0, SeekOrigin.Begin);
-                byte[] compressBuffer = new byte[compressStream.Length];
-                compressStream.Read(compressBuffer, 0, compressBuffer.Length);
-                return compressBuffer;
-                }
-            }
-        }
-        public static byte[] DecompressFromZlib(Stream stream, int rawSize)
-        {
-            using (stream)
-            {
-                using (ZLibNet.ZLibStream dz = new ZLibNet.ZLibStream(stream, ZLibNet.CompressionMode.Decompress))
-                {
-                    byte[] buffer = new byte[rawSize];
-                    dz.Read(buffer, 0, buffer.Length);
-                    return buffer;
-                }
-            }
-        }
         public static byte[] CompressToLz4(byte[] buffer)
         {
+#if NETSTANDARD2_0
+            var inputLength = buffer.Length;
+            var maximumLength = LZ4Codec.MaximumOutputLength(inputLength);
+            var outputBuffer = new byte[maximumLength];
+
+            var outputLength = LZ4Codec.Encode(
+                buffer, 0, inputLength,
+                outputBuffer, 0, maximumLength);
+
+            if (outputLength < maximumLength)
+            {
+                return outputBuffer.Take(outputLength).ToArray();
+            }
+            else
+            {
+                return outputBuffer;
+            }
+#else
             var compressor = LZ4CompressorFactory.CreateNew();
             return compressor.Compress(buffer);
+#endif
         }
         public static byte[] DecompressFromLZ4(Stream stream, int rawLength)
         {
             using (stream)
             {
+#if NETSTANDARD2_0
+                var inputLength = rawLength;
+                var inputBuffer = new byte[inputLength];
+                stream.Read(inputBuffer, 0, rawLength);
+                var guessedOutputLength = inputLength * 10;
+                var outputBuffer = new byte[guessedOutputLength];
+                var actualOutputLength = LZ4Codec.Decode(
+                    inputBuffer, 0, inputLength,
+                    outputBuffer, 0, guessedOutputLength);
+                if (actualOutputLength < guessedOutputLength)
+                {
+                    return outputBuffer.Take(actualOutputLength).ToArray();
+                }
+                else
+                {
+                    return outputBuffer;
+                }
+#else
                 using (Lz4DecoderStream streamInner = new Lz4DecoderStream(stream))
                 {
                     byte[] output = new byte[rawLength];
                     streamInner.Read(output, 0, rawLength);
                     return output;
                 }
+#endif
             }
         }
         public static string GetMd5Value(byte[] buffer)
         {
-            return GetMd5Value(buffer,0,buffer.Length);
+            return GetMd5Value(buffer, 0, buffer.Length);
         }
-        public static string GetMd5Value(byte[] buffer,int offset, int count)
+        public static string GetMd5Value(byte[] buffer, int offset, int count)
         {
             MD5 hash = MD5.Create(LogConsts.NAME_MD5);
             StringBuilder returnStr = new StringBuilder();
@@ -85,7 +102,7 @@ namespace Aliyun.Api.LOG.Utilities
             }
             return returnStr.ToString();
         }
-        
+
         public static void ResponseErrorCheck(ServiceResponse response, ServiceCredentials credentials)
         {
             if (response.StatusCode != HttpStatusCode.OK)
@@ -163,7 +180,7 @@ namespace Aliyun.Api.LOG.Utilities
                 .Append(GetRequestString(headerLst, ":", "\n"));
             return reqUri.ToString();
         }
-        internal static String SigInternal(String source,String accessKeyId, String accessKey)
+        internal static String SigInternal(String source, String accessKeyId, String accessKey)
         {
             ServiceSignature signAlthm = ServiceSignature.Create();
             return LogConsts.PREFIX_VALUE_HEADER_AUTH + accessKeyId + ":" + signAlthm.ComputeSignature(accessKey, source);
@@ -172,12 +189,12 @@ namespace Aliyun.Api.LOG.Utilities
         {
             return SigInternal(BuildHeaderSigStr(headers), accessKeyId, accessKey);
         }
-        public static String Signature(IDictionary<String,String> headers,IDictionary<String,String> paramDic,HttpMethod method, String resource,String accessKeyId,String accessKey)
+        public static String Signature(IDictionary<String, String> headers, IDictionary<String, String> paramDic, HttpMethod method, String resource, String accessKeyId, String accessKey)
         {
             List<KeyValuePair<string, string>> paramLst = new List<KeyValuePair<string, string>>(paramDic);
-            
+
             paramLst.Sort(new KeyValueComparer());
-            
+
             StringBuilder reqUri = new StringBuilder();
             reqUri.Append(MapEnumMethodToString(method)).Append("\n")
                 .Append(BuildHeaderSigStr(headers)).Append("\n")
