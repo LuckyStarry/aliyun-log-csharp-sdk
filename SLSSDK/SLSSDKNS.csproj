@@ -11,6 +11,8 @@
     <Company>Aliyun</Company>
     <Product>SLSSDK</Product>
     <Authors>SUN BO</Authors>
+    <Version>1.0.1</Version>
+    <PackageReleaseNotes>.NET Standard 2.0 Support.</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -31,7 +33,6 @@
     <PackageReference Include="Google.ProtocolBuffers" Version="2.4.1.555" />
     <PackageReference Include="lz4net" Version="1.0.15.93" />
     <PackageReference Include="Newtonsoft.Json" Version="10.0.3" />
-    <PackageReference Include="zlib.net" Version="1.0.4" />
   </ItemGroup>
 
 </Project>

@@ -33,7 +33,13 @@ namespace Aliyun.Api.LOG.Common.Authentication
         protected override string ComputeSignatureCore(string key, string data)
         {
             Debug.Assert(!string.IsNullOrEmpty(data));
-
+#if NETSTANDARD2_0
+            using (var algorithm = new HMACSHA1(_encoding.GetBytes(key.ToCharArray())))
+            {
+                return Convert.ToBase64String(
+                    algorithm.ComputeHash(_encoding.GetBytes(data.ToCharArray())));
+            }
+#else
             using (KeyedHashAlgorithm algorithm = KeyedHashAlgorithm.Create(
                 this.SignatureMethod.ToString().ToUpperInvariant()))
             {
@@ -41,6 +47,7 @@ namespace Aliyun.Api.LOG.Common.Authentication
                 return Convert.ToBase64String(
                     algorithm.ComputeHash(_encoding.GetBytes(data.ToCharArray())));
             }
+#endif
         }
 
     }
